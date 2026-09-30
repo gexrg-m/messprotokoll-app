@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Messprotokoll</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef1f4;--pa:#fff;--tx:#12212f;--mu:#5b6b7a;--ac:#0a4fa8;--bd:#cfd7df;--ok:#19773c;--no:#b3261e;--ng:#8a6100;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1720;--pa:#17222e;--tx:#e8eef4;--mu:#93a3b3;--ac:#6aa6ff;--bd:#2c3a48;--ok:#5fd18a;--no:#ff8a80;--ng:#e8b84a}}
+:root[data-theme="dark"]{--bg:#0f1720;--pa:#17222e;--tx:#e8eef4;--mu:#93a3b3;--ac:#6aa6ff;--bd:#2c3a48;--ok:#5fd18a;--no:#ff8a80;--ng:#e8b84a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:84px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pa);border-bottom:2px solid var(--ac);display:flex;align-items:center;gap:8px;padding:8px 12px}
+header h1{font-size:18px;font-weight:600;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button{font:inherit;color:inherit;min-height:44px;padding:0 14px;border:1px solid var(--bd);background:var(--pa);border-radius:6px}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+button.d{color:var(--no);border-color:var(--no)}
+main{max-width:680px;margin:0 auto;padding:12px}
+h2{font-size:15px;font-weight:600;margin:20px 0 6px;color:var(--mu)}
+.row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--pa);border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:12px 10px;min-height:56px}
+.row b{display:block;font-weight:600}.row small{color:var(--mu)}
+.list{border:1px solid var(--bd);border-bottom:0;border-radius:6px;overflow:hidden}
+.f{display:block;margin:0 0 10px}.f span{display:block;font-size:13px;color:var(--mu);margin-bottom:2px}
+input,textarea{font:inherit;width:100%;min-height:46px;padding:8px 10px;color:var(--tx);background:var(--pa);border:1px solid var(--bd);border-radius:6px}
+input[data-n],input[inputmode]{font-variant-numeric:tabular-nums}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.ch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ch button{min-height:42px}
+.ch button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pp{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button.io.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.nio.on{background:var(--no);border-color:var(--no);color:#fff}
+.seg button.ng.on{background:var(--ng);border-color:var(--ng);color:#fff}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--pa);border-top:2px solid var(--ac);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{border:0;border-radius:0;min-height:56px;font-size:14px;background:none}
+nav button.on{color:var(--ac);font-weight:600;box-shadow:inset 0 3px 0 var(--ac)}
+#cv{width:100%;height:170px;background:#fff;border:1px solid var(--bd);border-radius:6px;touch-action:none;display:block}
+img.sg{max-width:100%;background:#fff;border:1px solid var(--bd);border-radius:6px}
+.note{color:var(--mu);font-size:14px}
+textarea{min-height:120px;font-size:12px}
+select{font:inherit;width:100%;min-height:46px;padding:8px 10px;color:var(--tx);background:var(--pa);border:1px solid var(--bd);border-radius:6px}
+.ir{display:flex;gap:6px}.ir button{min-width:46px;padding:0}
+input[type=file]{min-height:auto;border:0;padding:8px 0}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script></head>
+<body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s);
+let db={p:[]},nav={tab:'deck'};
+try{db=JSON.parse(localStorage.getItem('mp1'))||db}catch(e){}
+const save=()=>{try{localStorage.setItem('mp1',JSON.stringify(db))}catch(e){}};
+const incNr=n=>{const m=/^(.*?)(\d+)$/.exec(n||'');return m?m[1]+String(+m[2]+1).padStart(m[2].length,'0'):(n||'')};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toLocaleDateString('de-DE');
+const STAMM=['nr','bez','typ','leiter','art','in','rcdIn','rcdArt','idn'],MW=['ikmin','ikpe','zs','ikn','zi','riso','rpe','imess','tms','u'];
+const measured=s=>MW.some(k=>s[k]!==undefined&&String(s[k]).trim()!=='');
+const idb=(m,v)=>new Promise((ok,no)=>{const q=indexedDB.open('mp',1);q.onupgradeneeded=()=>q.result.createObjectStore('f');q.onerror=()=>no(q.error);q.onsuccess=()=>{const st=q.result.transaction('f',m==='get'?'readonly':'readwrite').objectStore('f'),rq=m==='get'?st.get('tpl'):st.put(v,'tpl');rq.onsuccess=()=>ok(rq.result);rq.onerror=()=>no(rq.error)}});
+const P=()=>db.p.find(x=>x.id===nav.p),R=()=>P()?.r.find(x=>x.id===nav.r);
+
+const DECK=[['auftrag','Auftrag Nr.'],['kunde','Kunde'],['gebaeude','Gebäude'],['anlage','Anlagenteil / Verteiler'],['bestell','Bestell-/Auftrags-Nr.'],['vom','vom (Datum)'],['zustaendig','Zuständig (Frau/Herr)'],['beginn','Beginn der Prüfung'],['ende','Ende der Prüfung'],['pruefer','Prüfer'],['beauftragter','Beauftragter des Auftraggebers'],['netzV','Netz (V)','d'],['netzHz','Frequenz (Hz)','d'],['mg1','Messgerät 1: Hersteller/Typ'],['sn1','Messgerät 1: S/N'],['mg2','Messgerät 2: Hersteller/Typ'],['sn2','Messgerät 2: S/N'],['termin','Nächster Prüftermin (MM/JJJJ)']];
+const CH=[['nach','Prüfung nach',['VDE 0100-600','VDE 0105','DGUV V3'],1],['art','Art der Prüfung',['Neuanlage','Erweiterung/Änderung','Instandsetzung','Wiederholungsprüfung','E-Check']],['nf','Netzform',['TN-C','TN-S','TN-C-S','TT','IT']],['erg','Prüfungsergebnis',['Keine Mängel','Mängel (siehe Anlage)']],['pl','Prüfplakette angebracht',['ja','nein']],['rm','Riso-Messung',['ohne Verbraucher','mit Verbraucher']],['rv','Riso-Prüfspannung',['500 V','250 V']],['ab','Abschaltzeit',['0,4 s','5 s']]];
+const PP=['Auswahl und Anordnung der Betriebsmittel','Schutz gegen direktes Berühren','Abschalt- und Trennvorrichtungen','Vorhandensein von Brandabschottung','Hauptpotentialausgleich','Kennzeichnung der Stromkreise','Zugänglichkeit der Betriebsmittel','Beachtung der Herstellerunterlagen','Schaltpläne, Warn-, Verbotszeichen, Schemata','Leitungsverlegung (Bemessung/Anordnung/Kennzeichnung)','Funktionsprüfung der FI-Prüftaste','Automatische Abschaltung im Fehlerfall','Durchgängigkeit Schutzleiter, Potentialausgleich','Rechtsdrehfeld der Drehstromsteckdosen','Drehrichtung der Motoren'];
+const SK=[['Leitung',[['nr','Nr.'],['bez','Stromkreis / Zielbezeichnung'],['typ','Typ','l'],['leiter','Leiter (Anz. x mm²)','l']]],['Überstromschutz',[['art','Art / Charakteristik','l'],['in','In (A)','l'],['ikmin','Ik min. (A)','d'],['ikpe','Ik L-PE (A)','d'],['zs','Zs (Ω)','d'],['ikn','Ik L-N (A)','d'],['zi','Zi (Ω)','d']]],['Isolation und Schutzleiter',[['riso','Riso (MΩ)','r'],['rpe','R PE / R low (Ω)','d']]],['RCD',[['rcdIn','RCD In (A)','l'],['rcdArt','RCD Art (Typ)','l'],['idn','IΔn (mA)','l'],['imess','Imess (mA)','d'],['tms','Auslösezeit (ms)','d'],['u','Umess (V)','d']]]];
+const DEF={typ:['NYM-J','NYY-J','H07RN-F','H05VV-F','NHXMH-J','(N)HXH','J-Y(St)Y'],leiter:['3x1,5','5x1,5','3x2,5','5x2,5','5x4','5x6','5x10','5x16','5x25'],art:['B','C','D','K','gG','gL'],in:['6','10','13','16','20','25','32','35','40','50','63','80','100','125'],rcdIn:['16','25','40','63','80','100','125'],rcdArt:['A','B','F','AC'],idn:['10','30','100','300','500']};
+const opts=k=>{const u=db.p.flatMap(p=>p.r.flatMap(r=>r.sk.map(s=>s[k]))).filter(Boolean).reverse();return[...new Set([...u,...DEF[k]])]};
+
+function fld(o,k,l,t,v,s){if(t==='l')return sel(k,l,v,s);
+ const a=t==='d'?'inputmode="decimal"':k==='nr'?'autocapitalize="characters" autocorrect="off"':t==='r'?'inputmode="decimal"':'';
+ const inp=`<input data-o="${o}" data-k="${k}" value="${esc(v)}" ${a} autocomplete="off" aria-label="${l}">`;
+ if(t==='r'){const pre=(/^[<>]/.exec(String(v||''))||[''])[0],num=String(v||'').replace(/^[<>]\s*/,'');return `<div class="f"><span>${l}</span><div class="ch">${[['','Zahl'],['>','>'],['<','<']].map(([z,n])=>`<button class="${pre===z?'on':''}" data-a="ins" data-v="${z}">${esc(n)}</button>`).join('')}</div><input data-o="rn" data-k="riso" value="${esc(num)}" inputmode="decimal" autocomplete="off" aria-label="${l}"></div>`}
+ return `<label class="f"><span>${l}</span>${inp}</label>`}
+function sel(k,l,v,s){const base=DEF[k],list=[...base,...opts(k).filter(x=>!base.includes(x))],other=!!s['_'+k]||(v&&!list.includes(v));
+ return `<div class="f"><span>${l}</span><select data-sel="${k}" aria-label="${l}"><option value=""${!v&&!other?' selected':''}>– wählen –</option>${list.map(o=>`<option value="${esc(o)}"${!other&&v===o?' selected':''}>${esc(o)}</option>`).join('')}<option value="__o"${other?' selected':''}>Andere …</option></select>${other?`<input data-o="sk" data-k="${k}" value="${esc(v)}" placeholder="Wert eingeben" autocomplete="off" style="margin-top:6px">`:''}</div>`}
+function chips(r,[k,l,os,multi]){const v=r.d[k];const on=o=>multi?(v||[]).includes(o):v===o;
+ return `<h2>${l}</h2><div class="ch">${os.map(o=>`<button class="${on(o)?'on':''}" data-a="pick" data-k="${k}" data-v="${esc(o)}" data-m="${multi?1:''}">${o}</button>`).join('')}</div>`}
+const arm=(key,txt)=>`<button class="d" data-a="del" data-key="${key}">${nav.arm===key?'Nochmal tippen zum Löschen':txt}</button>`;
+const head=(t,back)=>`<header>${back?'<button data-a="back" aria-label="Zurück">‹ Zurück</button>':''}<h1>${esc(t)}</h1></header>`;
+
+function vHome(){return head('Messprotokolle')+`<main><h2>Projekte</h2>
+ <div class="list">${db.p.map(p=>`<button class="row" data-a="openP" data-id="${p.id}"><span><b>${esc(p.name)}</b><small>${p.r.length} Prüfung(en)</small></span></button>`).join('')||'<div class="row"><small>Noch kein Projekt. Lege unten das erste an.</small></div>'}</div>
+ <h2>Neues Projekt</h2><label class="f"><span>Name</span><input id="np"></label><button class="p" data-a="newP">Projekt anlegen</button>
+ <h2>Excel-Vorlage</h2><p class="note">${nav.tpl?'Vorlage ist gespeichert.':'Noch keine Vorlage geladen.'} Wähle einmal die Datei „Messprotokoll_Vorlage_App.xlsx“. Sie bleibt nur auf diesem Gerät.</p><input type="file" id="tplf" accept=".xlsx">
+ <h2>Sicherung</h2><p class="note">Die Daten liegen nur auf diesem Gerät. Kopiere den Text in eine Notiz, um zu sichern, oder füge eine Sicherung ein.</p>
+ <textarea id="bk">${esc(JSON.stringify(db))}</textarea><p><button data-a="restore">Sicherung einspielen</button></p><p class="note">Version 6</p></main>`}
+
+function vProj(){const p=P();return head(p.name,1)+`<main><h2>Prüfungen</h2><div class="list">${p.r.map(r=>`<button class="row" data-a="openR" data-id="${r.id}"><span><b>${esc(r.d.anlage||'Prüfung ohne Anlagenteil')}</b><small>${esc(r.d.beginn||'kein Datum')} · ${r.sk.length} Stromkreise${r.sig?' · unterschrieben':''}</small></span></button>`).join('')||'<div class="row"><small>Noch keine Prüfung in diesem Projekt.</small></div>'}</div>
+ <p><button class="p" data-a="newR">Neue Prüfung (leer)</button></p>${p.r.length?'<p><button data-a="newR" data-cp="1">Neue Prüfung aus der letzten übernehmen</button></p><p class="note">Übernimmt Objekt, Netz und alle Stromkreise ohne Messwerte.</p>':''}<p>${arm('P','Projekt löschen')}</p></main>`}
+
+function vR(){const r=R(),t=nav.tab;let b='';
+ if(t==='deck')b=`<main>${DECK.map(([k,l,ty])=>fld('d',k,l,ty,r.d[k])).join('')}${CH.map(c=>chips(r,c)).join('')}<p>${arm('R','Prüfung löschen')}</p></main>`;
+ if(t==='pp')b=`<main><button data-a="allio">Alle Punkte auf i.O. setzen</button>${PP.map((l,i)=>`${i===0?'<h2>Besichtigen</h2>':i===10?'<h2>Erproben</h2>':''}<div class="pp"><div>${l}</div><div class="seg">${[['io','i.O.'],['nio','n.i.O.'],['ng','n. gep.']].map(([v,n])=>`<button class="${v} ${r.pp[i]===v?'on':''}" data-a="pp" data-i="${i}" data-v="${v}">${n}</button>`).join('')}</div></div>`).join('')}</main>`;
+ if(t==='sk'&&nav.e==null){const f=nav.f||'all',n=r.sk.filter(measured).length,rows=r.sk.map((s,i)=>[s,i]).filter(([s])=>f==='all'||(f==='done')===measured(s));
+  b=`<main><p><b>${n} von ${r.sk.length} gemessen</b> · ${Math.ceil(r.sk.length/12)} Folgeblatt/-blätter</p><div class="ch">${[['all','Alle'],['open','Offen'],['done','Gemessen']].map(([k,l])=>`<button class="${f===k?'on':''}" data-a="flt" data-v="${k}">${l}</button>`).join('')}</div><div class="list">${rows.map(([s,i])=>`<button class="row" data-a="editSk" data-i="${i}"><span><b>${measured(s)?'✓':'○'} ${esc(s.nr)} ${esc(s.bez||'ohne Bezeichnung')}</b><small>${esc([s.typ,s.leiter,s.art&&s.in?s.art+s.in:''].filter(Boolean).join(' · '))}</small></span></button>`).join('')||'<div class="row"><small>Keine Stromkreise in dieser Ansicht.</small></div>'}</div><p><button class="p" data-a="newSk">Stromkreis hinzufügen</button></p></main>`}
+ if(t==='sk'&&nav.e!=null){const s=r.sk[nav.e];b=`<main>${SK.map(([g,fs])=>`<h2>${g}</h2><div class="g2">${fs.map(([k,l,ty])=>fld('sk',k,l,ty,s[k],s)).join('')}</div>`).join('')}
+ 
+ <p><button class="p" data-a="doneSk">Fertig</button> <button data-a="dupSk">Duplizieren</button> ${arm('S','Löschen')}</p></main>`}
+ if(t==='sig')b=`<main><p class="note">Prüfer: ${esc(r.d.pruefer||'(im Deckblatt eintragen)')}</p>${fld('d','ort','Ort',0,r.d.ort)}
+ ${r.sig?`<h2>Unterschrift vom ${esc(r.sigd)}</h2><img class="sg" src="${r.sig}" alt="Unterschrift"><p><button data-a="resig">Neu unterschreiben</button></p>`:`<h2>Hier mit dem Finger unterschreiben</h2><canvas id="cv"></canvas><p><button class="p" data-a="saveSig">Unterschrift übernehmen</button> <button data-a="clrSig">Löschen</button></p>`}${exportUI(r)}</main>`;
+ const title=r.d.anlage||'Prüfung';
+ return head(title,1)+b+`<nav>${[['deck','Deckblatt'],['pp','Prüfpunkte'],['sk','Stromkreise'],['sig','Abschluss']].map(([k,l])=>`<button class="${t===k?'on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</nav>`}
+
+const exportUI=r=>{const m=nav.xm||'done',n=r.sk.filter(measured).length;return `<h2>Excel-Export</h2>${nav.tpl?'':'<p class="note">Zuerst auf der Startseite die Excel-Vorlage laden.</p>'}<div class="ch">${[['all','Alle Stromkreise ('+r.sk.length+')'],['done','Nur gemessene ('+n+')']].map(([k,l])=>`<button class="${m===k?'on':''}" data-a="xm" data-v="${k}">${l}</button>`).join('')}</div><p><button class="p" data-a="exp">${nav.busy?'Erzeuge Datei …':'Excel erzeugen'}</button></p>${nav.file?`<p><button class="p" data-a="share">Teilen / speichern: ${esc(nav.file.name)}</button></p>`:''}`};
+const num=x=>/^-?\d+([.,]\d+)?$/.test(String(x).trim())?+String(x).trim().replace(',','.'):x;
+async function doExport(){const r=R(),d=r.d;nav.busy=1;nav.file=null;render();
+ try{const buf=await idb('get');if(!buf)throw new Error('Bitte zuerst auf der Startseite die Excel-Vorlage laden.');
+ const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const s1=wb.getWorksheet('Seite 1'),X='☒',B='☐',ck=(c,x)=>(c?X:B)+' '+x,set=(w,a,v)=>{w.getCell(a).value=v};
+ const list=r.sk.filter(s=>(nav.xm||'done')==='all'||measured(s)),pages=Math.max(1,Math.ceil(list.length/12)),total=pages+1,has=(k,v)=>(d[k]||[]).includes(v);
+ Object.entries({C6:d.auftrag,C8:d.kunde,C9:d.gebaeude,C10:d.anlage,C11:d.bestell,H11:d.vom,C12:d.zustaendig,K12:1,M12:total,C15:d.beginn,C16:d.ende,G15:d.pruefer,H16:d.beauftragter,
+  C13:ck(has('nach','VDE 0100-600'),'DIN VDE 0100 Teil 600'),G13:ck(has('nach','VDE 0105'),'DIN VDE 0105'),J13:ck(has('nach','DGUV V3'),'DGUV V3'),
+  A14:['Neuanlage','Erweiterung/Änderung','Instandsetzung','Wiederholungsprüfung','E-Check'].map(a=>ck(d.art===a,a)).join('        '),
+  A17:`      Netz:     ${d.netzV||''}     V      ${d.netzHz||''}    Hz`,E17:' Netzform:     '+['TN-C','TN-S','TN-C-S','TT','IT'].map(n=>ck(d.nf===n,n)).join('     '),
+  C31:'Hersteller/Typ: '+(d.mg1||''),C32:'S/N: '+(d.sn1||''),L31:d.mg2||'',L32:d.sn2||'',
+  C33:ck(d.erg==='Keine Mängel','keine Mängel festgestellt'),C34:ck(d.erg==='Mängel (siehe Anlage)','Mängel festgestellt (siehe Anlage)'),I33:ck(d.pl==='ja','ja'),I34:ck(d.pl==='nein','nein'),
+  J33:' Nächster Prüftermin: '+(d.termin||''),I36:d.pruefer,G38:[d.ort,r.sigd||today()].filter(Boolean).join(', ')}).forEach(([a,v])=>set(s1,a,v??''));
+ const pos=i=>i<5?[20+i,'CDE']:i<10?[15+i,'KLM']:i<12?[17+i,'CDE']:[15+i,'KLM'];
+ r.pp.forEach((v,i)=>{const[row,cs]=pos(i);[...cs].forEach((c,k)=>set(s1,c+row,ck(['io','nio','ng'][k]===v,'')))});
+ if(r.sig){const id=wb.addImage({base64:r.sig,extension:'png'});s1.addImage(id,{tl:{col:10,row:37},br:{col:13,row:39},editAs:'oneCell'})}
+ const sg=[d.ort,r.sigd||today()].filter(Boolean).join(', ');
+ for(let p=0;p<pages;p++){const w=wb.getWorksheet('Seite '+(p+2));
+  Object.entries({C4:d.auftrag,E5:d.anlage,J4:p+2,M4:total,L2:ck(p<pages-1,'ja'),M2:ck(p===pages-1,'nein'),L7:ck(d.rm==='ohne Verbraucher','ohne'),L8:ck(d.rm==='mit Verbraucher','mit'),L10:ck(d.rv==='500 V','500 V'),L11:ck(d.rv==='250 V','250 V'),G9:ck(d.ab==='0,4 s','0,4 s'),G10:ck(d.ab==='5 s','5 s'),L27:d.pruefer,K28:sg}).forEach(([a,v])=>set(w,a,v??''));
+  list.slice(p*12,p*12+12).forEach((s,i)=>['nr','bez','typ','leiter','art','in','ikmin','ikpe','zs','ikn','zi','riso',null,'idn','imess','tms','u','rpe'].forEach((k,c)=>{let v=k?s[k]:(s.rcdIn||s.rcdArt?(s.rcdIn||'')+' / '+(s.rcdArt||''):'');if(v===undefined||v==='')return;set(w,String.fromCharCode(65+c)+(12+i),k&&!['nr','bez','typ','leiter','art','riso'].includes(k)?num(v):v)}))}
+ for(let n=pages+2;n<=10;n++)wb.removeWorksheet(wb.getWorksheet('Seite '+n).id);
+ const out=await wb.xlsx.writeBuffer(),fn=('Messprotokoll_'+(d.auftrag||d.anlage||'Pruefung')+'_'+(d.beginn||'')).replace(/[^\wäöüÄÖÜß.-]+/g,'_')+'.xlsx';
+ nav.file=new File([out],fn,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+ catch(e){alert(e.message||'Export fehlgeschlagen.')}
+ nav.busy=0;nav.keep=1;render()}
+function render(){const y=scrollY;$('#app').innerHTML=nav.r?vR():nav.p?vProj():vHome();sigInit();scrollTo(0,nav.keep?y:0);nav.keep=0}
+function sigInit(){const c=$('#cv');if(!c)return;const x=c.getContext('2d'),k=devicePixelRatio||1;c.width=c.clientWidth*k;c.height=c.clientHeight*k;x.scale(k,k);x.lineWidth=2.4;x.lineCap='round';x.strokeStyle='#000';let on=0,dirty=0;
+ const pt=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
+ c.onpointerdown=e=>{on=1;c.setPointerCapture(e.pointerId);const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b);x.stroke()};
+ c.onpointermove=e=>{if(!on)return;const[a,b]=pt(e);x.lineTo(a,b);x.stroke();dirty=1};
+ c.onpointerup=()=>on=0;
+ window.sig={get:()=>dirty?c.toDataURL('image/png'):null,clear:()=>{x.clearRect(0,0,c.width,c.height);dirty=0}}}
+
+function newRuf(cp){const l=db.p.flatMap(p=>p.r).pop()?.d||{};const d={netzV:'230 / 400',netzHz:'50',rm:'ohne Verbraucher',rv:'500 V',ab:'0,4 s',beginn:today(),vom:today(),nach:[]};
+ ['pruefer','mg1','sn1','mg2','sn2','ort'].forEach(k=>d[k]=l[k]||'');
+ const last=P().r[P().r.length-1];const r={id:uid(),d,pp:Array(15).fill('ng'),sk:[],sig:null};
+ if(cp&&last){['kunde','gebaeude','anlage','zustaendig','beauftragter','netzV','netzHz','nach','nf','art','rm','rv','ab'].forEach(k=>{if(last.d[k]!==undefined)d[k]=JSON.parse(JSON.stringify(last.d[k]))});r.sk=last.sk.map(s=>Object.fromEntries(STAMM.filter(k=>s[k]!==undefined).map(k=>[k,s[k]])))}
+ P().r.push(r);nav.r=r.id;nav.tab='deck';nav.e=null}
+
+document.addEventListener('input',e=>{const t=e.target,o=t.dataset.o;if(!o&&t.id!=='np')return;const r=R();
+ if(o==='d')r.d[t.dataset.k]=t.value;if(o==='rn'){const s=r.sk[nav.e];s.riso=((/^[<>]/.exec(s.riso||'')||[''])[0])+t.value}if(o==='sk')r.sk[nav.e][t.dataset.k]=t.value;save()});
+document.addEventListener('change',e=>{const t=e.target,k=t.dataset.sel;if(t.id==='tplf'){if(t.files[0])t.files[0].arrayBuffer().then(b=>idb('put',b)).then(()=>{nav.tpl=1;render()}).catch(()=>alert('Vorlage konnte nicht gespeichert werden.'));return}if(!k)return;const s=R().sk[nav.e];
+ if(t.value==='__o'){s['_'+k]=1;s[k]=''}else{delete s['_'+k];s[k]=t.value}save();nav.keep=1;render()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,D=b.dataset;
+ if(a!=='del')nav.arm=null;
+ if(a==='newP'){const n=$('#np').value.trim();if(!n)return $('#np').focus();db.p.push({id:uid(),name:n,r:[]});nav.p=db.p[db.p.length-1].id}
+ else if(a==='openP')nav.p=D.id;
+ else if(a==='openR'){nav.r=D.id;nav.tab='deck';nav.e=null}
+ else if(a==='newR')newRuf(D.cp);
+ else if(a==='back'){if(nav.r&&nav.e!=null)nav.e=null;else if(nav.r)nav.r=null;else nav.p=null}
+ else if(a==='tab'){nav.tab=D.v;nav.e=null}
+ else if(a==='pick'){const r=R();if(D.m){const v=r.d[D.k]||[];r.d[D.k]=v.includes(D.v)?v.filter(x=>x!==D.v):[...v,D.v]}else r.d[D.k]=r.d[D.k]===D.v?'':D.v;nav.keep=1}
+ else if(a==='pp'){R().pp[D.i]=D.v;nav.keep=1}
+ else if(a==='allio')R().pp.fill('io');
+ else if(a==='newSk'){const r=R();r.sk.push({nr:r.sk.length?incNr(r.sk[r.sk.length-1].nr):'1'});nav.e=r.sk.length-1}
+ else if(a==='flt')nav.f=D.v;
+ else if(a==='xm')nav.xm=D.v;
+ else if(a==='editSk')nav.e=+D.i;
+ else if(a==='doneSk')nav.e=null;
+ else if(a==='ins'){const s=R().sk[nav.e];s.riso=D.v+String(s.riso||'').replace(/^[<>]\s*/,'');nav.keep=1}
+ else if(a==='dupSk'){const r=R(),s={...r.sk[nav.e]};s.nr=incNr(s.nr);r.sk.splice(nav.e+1,0,s);nav.e++}
+ else if(a==='del'){if(nav.arm!==D.key){nav.arm=D.key;nav.keep=1}else{nav.arm=null;
+   if(D.key==='P'){db.p=db.p.filter(p=>p.id!==nav.p);nav.p=null}
+   if(D.key==='R'){const p=P();p.r=p.r.filter(r=>r.id!==nav.r);nav.r=null}
+   if(D.key==='S'){R().sk.splice(nav.e,1);nav.e=null}}}
+ else if(a==='clrSig'){sig.clear();return}
+ else if(a==='exp'){doExport();return}
+ else if(a==='share'){const f=nav.file;if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],title:f.name}).catch(()=>{});else{const l=document.createElement('a');l.href=URL.createObjectURL(f);l.download=f.name;l.click()}return}
+ else if(a==='saveSig'){const s=sig.get();if(!s)return alert('Bitte zuerst unterschreiben.');const r=R();r.sig=s;r.sigd=today()}
+ else if(a==='resig'){R().sig=null}
+ else if(a==='restore'){try{const j=JSON.parse($('#bk').value);if(!Array.isArray(j.p))throw 0;db=j;nav={tab:'deck',tpl:nav.tpl}}catch(_){return alert('Die Sicherung ist nicht lesbar.')}}
+ save();render();if(a==='ins'){const i=$('input[data-k="riso"]');if(i){i.focus();const n=i.value.length;i.setSelectionRange(n,n)}}});
+render();
+try{idb('get').then(b=>{nav.tpl=!!b;render()}).catch(()=>{})}catch(e){}
+</script></body></html>
