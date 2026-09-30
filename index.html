@@ -2,6 +2,15 @@
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Messprotokoll</title>
+<meta name="theme-color" content="#0a4fa8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Messprotokoll">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root{--bg:#eef1f4;--pa:#fff;--tx:#12212f;--mu:#5b6b7a;--ac:#0a4fa8;--bd:#cfd7df;--ok:#19773c;--no:#b3261e;--ng:#8a6100;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -43,7 +52,7 @@ select{font:inherit;width:100%;min-height:46px;padding:8px 10px;color:var(--tx);
 .ir{display:flex;gap:6px}.ir button{min-width:46px;padding:0}
 input[type=file]{min-height:auto;border:0;padding:8px 0}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script></head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script></head>
 <body><div id="app"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -83,7 +92,7 @@ function vHome(){return head('Messprotokolle')+`<main><h2>Projekte</h2>
  <h2>Neues Projekt</h2><label class="f"><span>Name</span><input id="np"></label><button class="p" data-a="newP">Projekt anlegen</button>
  <h2>Excel-Vorlage</h2><p class="note">${nav.tpl?'Vorlage ist gespeichert.':'Noch keine Vorlage geladen.'} Wähle einmal die Datei „Messprotokoll_Vorlage_App.xlsx“. Sie bleibt nur auf diesem Gerät.</p><input type="file" id="tplf" accept=".xlsx">
  <h2>Sicherung</h2><p class="note">Die Daten liegen nur auf diesem Gerät. Kopiere den Text in eine Notiz, um zu sichern, oder füge eine Sicherung ein.</p>
- <textarea id="bk">${esc(JSON.stringify(db))}</textarea><p><button data-a="restore">Sicherung einspielen</button></p><p class="note">Version 6</p></main>`}
+ <textarea id="bk">${esc(JSON.stringify(db))}</textarea><p><button data-a="restore">Sicherung einspielen</button></p><p class="note">Version 7</p></main>`}
 
 function vProj(){const p=P();return head(p.name,1)+`<main><h2>Prüfungen</h2><div class="list">${p.r.map(r=>`<button class="row" data-a="openR" data-id="${r.id}"><span><b>${esc(r.d.anlage||'Prüfung ohne Anlagenteil')}</b><small>${esc(r.d.beginn||'kein Datum')} · ${r.sk.length} Stromkreise${r.sig?' · unterschrieben':''}</small></span></button>`).join('')||'<div class="row"><small>Noch keine Prüfung in diesem Projekt.</small></div>'}</div>
  <p><button class="p" data-a="newR">Neue Prüfung (leer)</button></p>${p.r.length?'<p><button data-a="newR" data-cp="1">Neue Prüfung aus der letzten übernehmen</button></p><p class="note">Übernimmt Objekt, Netz und alle Stromkreise ohne Messwerte.</p>':''}<p>${arm('P','Projekt löschen')}</p></main>`}
@@ -103,9 +112,41 @@ function vR(){const r=R(),t=nav.tab;let b='';
 
 const exportUI=r=>{const m=nav.xm||'done',n=r.sk.filter(measured).length;return `<h2>Excel-Export</h2>${nav.tpl?'':'<p class="note">Zuerst auf der Startseite die Excel-Vorlage laden.</p>'}<div class="ch">${[['all','Alle Stromkreise ('+r.sk.length+')'],['done','Nur gemessene ('+n+')']].map(([k,l])=>`<button class="${m===k?'on':''}" data-a="xm" data-v="${k}">${l}</button>`).join('')}</div><p><button class="p" data-a="exp">${nav.busy?'Erzeuge Datei …':'Excel erzeugen'}</button></p>${nav.file?`<p><button class="p" data-a="share">Teilen / speichern: ${esc(nav.file.name)}</button></p>`:''}`};
 const num=x=>/^-?\d+([.,]\d+)?$/.test(String(x).trim())?+String(x).trim().replace(',','.'):x;
+const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const colN=c=>[...c].reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0);
+const cellXml=(a,s,v)=>{const st=s?` s="${s}"`:'';return v===''||v==null?`<c r="${a}"${st}/>`:typeof v==='number'?`<c r="${a}"${st}><v>${v}</v></c>`:`<c r="${a}"${st} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`};
+function setCell(xml,a,v){const R=+/\d+/.exec(a)[0],col=colN(/[A-Z]+/.exec(a)[0]);
+ const re=new RegExp('<c r="'+a+'"((?:\\s+[\\w:]+="[^"]*")*)\\s*(?:/>|>[\\s\\S]*?</c>)'),m=re.exec(xml);
+ if(m){const s=/\ss="(\d+)"/.exec(m[1]);return xml.replace(re,()=>cellXml(a,s&&s[1],v))}
+ const nc=cellXml(a,0,v),rr=new RegExp('<row r="'+R+'"((?:\\s+[\\w:]+="[^"]*")*)\\s*(?:/>|>([\\s\\S]*?)</row>)'),rm=rr.exec(xml);
+ if(rm){const cells=(rm[2]||'').match(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g)||[];let done=false,o='';
+  for(const c of cells){if(!done&&colN(/r="([A-Z]+)/.exec(c)[1])>col){o+=nc;done=true}o+=c}if(!done)o+=nc;
+  return xml.replace(rr,()=>`<row r="${R}"${rm[1]}>${o}</row>`)}
+ const nx=[...xml.matchAll(/<row r="(\d+)"/g)].find(x=>+x[1]>R),row=`<row r="${R}">${nc}</row>`;
+ return nx?xml.replace(nx[0],row+nx[0]):xml.replace('</sheetData>',row+'</sheetData>')}
+const res=(dir,t)=>{if(t[0]==='/')return t.slice(1);const o=[];for(const s of (dir+t).split('/')){if(s==='..')o.pop();else if(s!=='.')o.push(s)}return o.join('/')};
+async function buildXlsx(zip,sets,keep,sig){
+ const S=n=>zip.file(n).async('string'),relsOf=p=>p.replace(/([^/]+)$/,'_rels/$1.rels');
+ let wbx=await S('xl/workbook.xml'),rl=await S('xl/_rels/workbook.xml.rels'),ct=await S('[Content_Types].xml');
+ const rid={};for(const m of rl.match(/<Relationship\b[^>]*>/g))rid[/\bId="([^"]+)"/.exec(m)[1]]=res('xl/',/Target="([^"]+)"/.exec(m)[1]);
+ const sh={};for(const m of wbx.match(/<sheet\b[^>]*>/g)){const n=/name="([^"]+)"/.exec(m)[1],id=/r:id="([^"]+)"/.exec(m)[1];sh[n]={tag:m,id,path:rid[id]}}
+ const drawOf=async p=>{const f=zip.file(relsOf(p));if(!f)return null;const m=((await f.async('string')).match(/<Relationship\b[^>]*>/g)||[]).find(x=>/\/drawing"/.test(x));return m?res('xl/worksheets/',/Target="([^"]+)"/.exec(m)[1]):null};
+ wbx=wbx.replace(/<definedName\b[^>]*name="_xl(?:eta|fn)_[^"]*"[^>]*>[^<]*<\/definedName>/g,'');
+ for(const [n,cells] of Object.entries(sets)){let x=await S(sh[n].path);for(const [a,v] of cells)x=setCell(x,a,v);zip.file(sh[n].path,x)}
+ if(sig){const dr=await drawOf(sh['Seite 1'].path);if(dr){const rp=relsOf(dr);let rx=await S(rp);rx=rx.replace('</Relationships>','<Relationship Id="rIdSig" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="/xl/media/unterschrift.png"/></Relationships>');zip.file(rp,rx);
+  zip.file('xl/media/unterschrift.png',sig.b64,{base64:true});if(!/Extension="png"/i.test(ct))ct=ct.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>');
+  const H=300000,W=Math.min(1250000,Math.round(H*sig.w/sig.h));let dx=await S(dr);
+  dx=dx.replace('</xdr:wsDr>',`<xdr:oneCellAnchor><xdr:from><xdr:col>10</xdr:col><xdr:colOff>20000</xdr:colOff><xdr:row>37</xdr:row><xdr:rowOff>10000</xdr:rowOff></xdr:from><xdr:ext cx="${W}" cy="${H}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="90" name="Unterschrift"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rIdSig"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${W}" cy="${H}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`);zip.file(dr,dx)}}
+ for(const n of Object.keys(sh)){const k=+/(\d+)$/.exec(n)[1];if(k<=keep)continue;const s=sh[n],dr=await drawOf(s.path);
+  [s.path,relsOf(s.path),dr,dr&&relsOf(dr)].filter(Boolean).forEach(f=>zip.remove(f));
+  for(const f of [s.path,dr].filter(Boolean))ct=ct.replace(new RegExp('<Override\\b[^>]*PartName="/'+f.replace(/[.]/g,'\\.')+'"[^>]*/>'),'');
+  wbx=wbx.replace(s.tag,'');rl=rl.replace(new RegExp('<Relationship\\b[^>]*\\bId="'+s.id+'"[^>]*/>'),'');
+  wbx=wbx.replace(new RegExp('<definedName\\b[^>]*>[^<]*Seite '+k+"(?![0-9])[^<]*</definedName>",'g'),'')}
+ if(!/<definedName\b/.test(wbx))wbx=wbx.replace(/<definedNames>\s*<\/definedNames>/,'').replace(/<definedNames\s*\/>/,'');
+ zip.file('xl/workbook.xml',wbx);zip.file('xl/_rels/workbook.xml.rels',rl);zip.file('[Content_Types].xml',ct)}
 async function doExport(){const r=R(),d=r.d;nav.busy=1;nav.file=null;render();
  try{const buf=await idb('get');if(!buf)throw new Error('Bitte zuerst auf der Startseite die Excel-Vorlage laden.');
- const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const s1=wb.getWorksheet('Seite 1'),X='☒',B='☐',ck=(c,x)=>(c?X:B)+' '+x,set=(w,a,v)=>{w.getCell(a).value=v};
+ const zip=await JSZip.loadAsync(buf);const X='☒',B='☐',ck=(c,x)=>(c?X:B)+' '+x,sets={},s1='Seite 1',set=(w,a,v)=>(sets[w]=sets[w]||[]).push([a,v]);
  const list=r.sk.filter(s=>(nav.xm||'done')==='all'||measured(s)),pages=Math.max(1,Math.ceil(list.length/12)),total=pages+1,has=(k,v)=>(d[k]||[]).includes(v);
  Object.entries({C6:d.auftrag,C8:d.kunde,C9:d.gebaeude,C10:d.anlage,C11:d.bestell,H11:d.vom,C12:d.zustaendig,K12:1,M12:total,C15:d.beginn,C16:d.ende,G15:d.pruefer,H16:d.beauftragter,
   C13:ck(has('nach','VDE 0100-600'),'DIN VDE 0100 Teil 600'),G13:ck(has('nach','VDE 0105'),'DIN VDE 0105'),J13:ck(has('nach','DGUV V3'),'DGUV V3'),
@@ -116,13 +157,13 @@ async function doExport(){const r=R(),d=r.d;nav.busy=1;nav.file=null;render();
   J33:' Nächster Prüftermin: '+(d.termin||''),I36:d.pruefer,G38:[d.ort,r.sigd||today()].filter(Boolean).join(', ')}).forEach(([a,v])=>set(s1,a,v??''));
  const pos=i=>i<5?[20+i,'CDE']:i<10?[15+i,'KLM']:i<12?[17+i,'CDE']:[15+i,'KLM'];
  r.pp.forEach((v,i)=>{const[row,cs]=pos(i);[...cs].forEach((c,k)=>set(s1,c+row,ck(['io','nio','ng'][k]===v,'')))});
- if(r.sig){const id=wb.addImage({base64:r.sig,extension:'png'});s1.addImage(id,{tl:{col:10,row:37},br:{col:13,row:39},editAs:'oneCell'})}
  const sg=[d.ort,r.sigd||today()].filter(Boolean).join(', ');
- for(let p=0;p<pages;p++){const w=wb.getWorksheet('Seite '+(p+2));
+ for(let p=0;p<pages;p++){const w='Seite '+(p+2);
   Object.entries({C4:d.auftrag,E5:d.anlage,J4:p+2,M4:total,L2:ck(p<pages-1,'ja'),M2:ck(p===pages-1,'nein'),L7:ck(d.rm==='ohne Verbraucher','ohne'),L8:ck(d.rm==='mit Verbraucher','mit'),L10:ck(d.rv==='500 V','500 V'),L11:ck(d.rv==='250 V','250 V'),G9:ck(d.ab==='0,4 s','0,4 s'),G10:ck(d.ab==='5 s','5 s'),L27:d.pruefer,K28:sg}).forEach(([a,v])=>set(w,a,v??''));
-  list.slice(p*12,p*12+12).forEach((s,i)=>['nr','bez','typ','leiter','art','in','ikmin','ikpe','zs','ikn','zi','riso',null,'idn','imess','tms','u','rpe'].forEach((k,c)=>{let v=k?s[k]:(s.rcdIn||s.rcdArt?(s.rcdIn||'')+' / '+(s.rcdArt||''):'');if(v===undefined||v==='')return;set(w,String.fromCharCode(65+c)+(12+i),k&&!['nr','bez','typ','leiter','art','riso'].includes(k)?num(v):v)}))}
- for(let n=pages+2;n<=10;n++)wb.removeWorksheet(wb.getWorksheet('Seite '+n).id);
- const out=await wb.xlsx.writeBuffer(),fn=('Messprotokoll_'+(d.auftrag||d.anlage||'Pruefung')+'_'+(d.beginn||'')).replace(/[^\wäöüÄÖÜß.-]+/g,'_')+'.xlsx';
+  list.slice(p*12,p*12+12).forEach((s,i)=>['nr','bez','typ','leiter','art','in','ikmin','ikpe','zs','ikn','zi','riso',null,'idn','imess','tms','u','rpe'].forEach((k,c)=>{const v=k?s[k]:(s.rcdIn||s.rcdArt?(s.rcdIn||'')+' / '+(s.rcdArt||''):'');if(v===undefined||v==='')return;set(w,String.fromCharCode(65+c)+(12+i),k&&!['nr','bez','typ','leiter','art','riso'].includes(k)?num(v):v)}))}
+ let sig=null;if(r.sig){const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=r.sig});sig={b64:r.sig.split(',')[1],w:im.width||2,h:im.height||1}}
+ await buildXlsx(zip,sets,pages+1,sig);
+ const out=await zip.generateAsync({type:'uint8array',compression:'DEFLATE'}),fn=('Messprotokoll_'+(d.auftrag||d.anlage||'Pruefung')+'_'+(d.beginn||'')).replace(/[^\wäöüÄÖÜß.-]+/g,'_')+'.xlsx';
  nav.file=new File([out],fn,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
  catch(e){alert(e.message||'Export fehlgeschlagen.')}
  nav.busy=0;nav.keep=1;render()}
@@ -132,7 +173,8 @@ function sigInit(){const c=$('#cv');if(!c)return;const x=c.getContext('2d'),k=de
  c.onpointerdown=e=>{on=1;c.setPointerCapture(e.pointerId);const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b);x.stroke()};
  c.onpointermove=e=>{if(!on)return;const[a,b]=pt(e);x.lineTo(a,b);x.stroke();dirty=1};
  c.onpointerup=()=>on=0;
- window.sig={get:()=>dirty?c.toDataURL('image/png'):null,clear:()=>{x.clearRect(0,0,c.width,c.height);dirty=0}}}
+ window.sig={get:()=>{if(!dirty)return null;const W=c.width,H=c.height,d=x.getImageData(0,0,W,H).data;let a=W,b=H,e=0,f=0;for(let y=0;y<H;y++)for(let q=0;q<W;q++)if(d[(y*W+q)*4+3]>0){if(q<a)a=q;if(q>e)e=q;if(y<b)b=y;if(y>f)f=y}
+   const p=6,w=e-a+1+2*p,h=f-b+1+2*p,o=document.createElement('canvas');o.width=w;o.height=h;o.getContext('2d').drawImage(c,a-p,b-p,w,h,0,0,w,h);return o.toDataURL('image/png')},clear:()=>{x.clearRect(0,0,c.width,c.height);dirty=0}}}
 
 function newRuf(cp){const l=db.p.flatMap(p=>p.r).pop()?.d||{};const d={netzV:'230 / 400',netzHz:'50',rm:'ohne Verbraucher',rv:'500 V',ab:'0,4 s',beginn:today(),vom:today(),nach:[]};
  ['pruefer','mg1','sn1','mg2','sn2','ort'].forEach(k=>d[k]=l[k]||'');
@@ -174,5 +216,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a==='restore'){try{const j=JSON.parse($('#bk').value);if(!Array.isArray(j.p))throw 0;db=j;nav={tab:'deck',tpl:nav.tpl}}catch(_){return alert('Die Sicherung ist nicht lesbar.')}}
  save();render();if(a==='ins'){const i=$('input[data-k="riso"]');if(i){i.focus();const n=i.value.length;i.setSelectionRange(n,n)}}});
 render();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 try{idb('get').then(b=>{nav.tpl=!!b;render()}).catch(()=>{})}catch(e){}
 </script></body></html>
