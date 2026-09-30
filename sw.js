@@ -1,5 +1,5 @@
 // Bei jeder Aenderung an der App diese Nummer erhoehen, sonst zeigt das Handy die alte Version.
-const CACHE = 'messprotokoll-v1';
+const CACHE = 'messprotokoll-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

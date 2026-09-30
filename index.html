@@ -48,6 +48,8 @@ nav button.on{color:var(--ac);font-weight:600;box-shadow:inset 0 3px 0 var(--ac)
 img.sg{max-width:100%;background:#fff;border:1px solid var(--bd);border-radius:6px}
 .note{color:var(--mu);font-size:14px}
 textarea{min-height:120px;font-size:12px}
+select{font:inherit;width:100%;min-height:46px;padding:8px 10px;color:var(--tx);background:var(--pa);border:1px solid var(--bd);border-radius:6px}
+.ir{display:flex;gap:6px}.ir button{min-width:46px;padding:0}
 </style></head>
 <body><div id="app"></div>
 <script>
@@ -55,6 +57,7 @@ const $=s=>document.querySelector(s);
 let db={p:[]},nav={tab:'deck'};
 try{db=JSON.parse(localStorage.getItem('mp1'))||db}catch(e){}
 const save=()=>{try{localStorage.setItem('mp1',JSON.stringify(db))}catch(e){}};
+const incNr=n=>{const m=/^(.*?)(\d+)$/.exec(n||'');return m?m[1]+String(+m[2]+1).padStart(m[2].length,'0'):(n||'')};
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const today=()=>new Date().toLocaleDateString('de-DE');
@@ -63,12 +66,17 @@ const P=()=>db.p.find(x=>x.id===nav.p),R=()=>P()?.r.find(x=>x.id===nav.r);
 const DECK=[['auftrag','Auftrag Nr.'],['kunde','Kunde'],['gebaeude','Gebäude'],['anlage','Anlagenteil / Verteiler'],['bestell','Bestell-/Auftrags-Nr.'],['vom','vom (Datum)'],['zustaendig','Zuständig (Frau/Herr)'],['beginn','Beginn der Prüfung'],['ende','Ende der Prüfung'],['pruefer','Prüfer'],['beauftragter','Beauftragter des Auftraggebers'],['netzV','Netz (V)','d'],['netzHz','Frequenz (Hz)','d'],['mg1','Messgerät 1: Hersteller/Typ'],['sn1','Messgerät 1: S/N'],['mg2','Messgerät 2: Hersteller/Typ'],['sn2','Messgerät 2: S/N'],['termin','Nächster Prüftermin (MM/JJJJ)']];
 const CH=[['nach','Prüfung nach',['VDE 0100-600','VDE 0105','DGUV V3'],1],['art','Art der Prüfung',['Neuanlage','Erweiterung/Änderung','Instandsetzung','Wiederholungsprüfung','E-Check']],['nf','Netzform',['TN-C','TN-S','TN-C-S','TT','IT']],['erg','Prüfungsergebnis',['Keine Mängel','Mängel (siehe Anlage)']],['pl','Prüfplakette angebracht',['ja','nein']],['rm','Riso-Messung',['ohne Verbraucher','mit Verbraucher']],['rv','Riso-Prüfspannung',['500 V','250 V']],['ab','Abschaltzeit',['0,4 s','5 s']]];
 const PP=['Auswahl und Anordnung der Betriebsmittel','Schutz gegen direktes Berühren','Abschalt- und Trennvorrichtungen','Vorhandensein von Brandabschottung','Hauptpotentialausgleich','Kennzeichnung der Stromkreise','Zugänglichkeit der Betriebsmittel','Beachtung der Herstellerunterlagen','Schaltpläne, Warn-, Verbotszeichen, Schemata','Leitungsverlegung (Bemessung/Anordnung/Kennzeichnung)','Funktionsprüfung der FI-Prüftaste','Automatische Abschaltung im Fehlerfall','Durchgängigkeit Schutzleiter, Potentialausgleich','Rechtsdrehfeld der Drehstromsteckdosen','Drehrichtung der Motoren'];
-const SK=[['Leitung',[['nr','Nr.','n'],['bez','Stromkreis / Zielbezeichnung'],['typ','Typ','l'],['leiter','Leiter (Anz. x mm²)','l']]],['Überstromschutz',[['art','Art / Charakteristik','l'],['in','In (A)','l'],['ikmin','Ik min. (A)','d'],['ikpe','Ik L-PE (A)','d'],['zs','Zs (Ω)','d'],['ikn','Ik L-N (A)','d'],['zi','Zi (Ω)','d']]],['Isolation und Schutzleiter',[['riso','Riso (MΩ)','d'],['rpe','R PE / R low (Ω)','d']]],['RCD',[['rcd','In / Art','l'],['idn','IΔn (mA)','d'],['imess','Imess (mA)','d'],['tms','Auslösezeit (ms)','d'],['u','Umess (V)','d']]]];
-const DEF={typ:['NYM-J','NYY-J','H07RN-F','H05VV-F','NHXMH-J','(N)HXH','J-Y(St)Y'],leiter:['3x1,5','5x1,5','3x2,5','5x2,5','5x4','5x6','5x10','5x16','5x25'],art:['B','C','D','K','gG','gL'],in:['6','10','13','16','20','25','32','35','40','50','63'],rcd:['30 / A','30 / B','300 / A','100 / A','500 / A']};
+const SK=[['Leitung',[['nr','Nr. (z. B. F26, Q1)'],['bez','Stromkreis / Zielbezeichnung'],['typ','Typ','l'],['leiter','Leiter (Anz. x mm²)','l']]],['Überstromschutz',[['art','Art / Charakteristik','l'],['in','In (A)','l'],['ikmin','Ik min. (A)','d'],['ikpe','Ik L-PE (A)','d'],['zs','Zs (Ω)','d'],['ikn','Ik L-N (A)','d'],['zi','Zi (Ω)','d']]],['Isolation und Schutzleiter',[['riso','Riso (MΩ)','r'],['rpe','R PE / R low (Ω)','d']]],['RCD',[['rcd','In / Art','l'],['idn','IΔn (mA)','d'],['imess','Imess (mA)','d'],['tms','Auslösezeit (ms)','d'],['u','Umess (V)','d']]]];
+const DEF={typ:['NYM-J','NYY-J','H07RN-F','H05VV-F','NHXMH-J','(N)HXH','J-Y(St)Y'],leiter:['3x1,5','5x1,5','3x2,5','5x2,5','5x4','5x6','5x10','5x16','5x25'],art:['B','C','D','K','gG','gL'],in:['6','10','13','16','20','25','32','35','40','50','63','80','100','125'],rcd:['30 / A','30 / B','300 / A','100 / A','500 / A'],riso:['>500','>200','<500','<200']};
 const opts=k=>{const u=db.p.flatMap(p=>p.r.flatMap(r=>r.sk.map(s=>s[k]))).filter(Boolean).reverse();return[...new Set([...u,...DEF[k]])]};
 
-function fld(o,k,l,t,v){const a=t==='l'?`list="dl-${k}"`:t==='d'?'inputmode="decimal"':t==='n'?'inputmode="numeric"':'';
- return `<label class="f"><span>${l}</span><input data-o="${o}" data-k="${k}" value="${esc(v)}" ${a} autocomplete="off"></label>`}
+function fld(o,k,l,t,v,s){if(t==='l')return sel(k,l,v,s);
+ const a=t==='d'?'inputmode="decimal"':k==='nr'?'autocapitalize="characters" autocorrect="off"':t==='r'?'autocorrect="off" autocapitalize="off" list="dl-riso"':'';
+ const inp=`<input data-o="${o}" data-k="${k}" value="${esc(v)}" ${a} autocomplete="off" aria-label="${l}">`;
+ if(t==='r')return `<div class="f"><span>${l}</span><div class="ir">${inp}<button data-a="ins" data-v="&gt;" aria-label="Größer-als">&gt;</button><button data-a="ins" data-v="&lt;" aria-label="Kleiner-als">&lt;</button></div></div>`;
+ return `<label class="f"><span>${l}</span>${inp}</label>`}
+function sel(k,l,v,s){const base=DEF[k],list=[...base,...opts(k).filter(x=>!base.includes(x))],other=!!s['_'+k]||(v&&!list.includes(v));
+ return `<div class="f"><span>${l}</span><select data-sel="${k}" aria-label="${l}"><option value=""${!v&&!other?' selected':''}>– wählen –</option>${list.map(o=>`<option value="${esc(o)}"${!other&&v===o?' selected':''}>${esc(o)}</option>`).join('')}<option value="__o"${other?' selected':''}>Andere …</option></select>${other?`<input data-o="sk" data-k="${k}" value="${esc(v)}" placeholder="Wert eingeben" autocomplete="off" style="margin-top:6px">`:''}</div>`}
 function chips(r,[k,l,os,multi]){const v=r.d[k];const on=o=>multi?(v||[]).includes(o):v===o;
  return `<h2>${l}</h2><div class="ch">${os.map(o=>`<button class="${on(o)?'on':''}" data-a="pick" data-k="${k}" data-v="${esc(o)}" data-m="${multi?1:''}">${o}</button>`).join('')}</div>`}
 const arm=(key,txt)=>`<button class="d" data-a="del" data-key="${key}">${nav.arm===key?'Nochmal tippen zum Löschen':txt}</button>`;
@@ -87,8 +95,8 @@ function vR(){const r=R(),t=nav.tab;let b='';
  if(t==='deck')b=`<main>${DECK.map(([k,l,ty])=>fld('d',k,l,ty,r.d[k])).join('')}${CH.map(c=>chips(r,c)).join('')}<p>${arm('R','Prüfung löschen')}</p></main>`;
  if(t==='pp')b=`<main><button data-a="allio">Alle Punkte auf i.O. setzen</button>${PP.map((l,i)=>`${i===0?'<h2>Besichtigen</h2>':i===10?'<h2>Erproben</h2>':''}<div class="pp"><div>${l}</div><div class="seg">${[['io','i.O.'],['nio','n.i.O.'],['ng','n. gep.']].map(([v,n])=>`<button class="${v} ${r.pp[i]===v?'on':''}" data-a="pp" data-i="${i}" data-v="${v}">${n}</button>`).join('')}</div></div>`).join('')}</main>`;
  if(t==='sk'&&nav.e==null)b=`<main><p class="note">${r.sk.length} Stromkreise · ${Math.ceil(r.sk.length/12)} Folgeblatt/-blätter (12 pro Blatt)</p><div class="list">${r.sk.map((s,i)=>`<button class="row" data-a="editSk" data-i="${i}"><span><b>${esc(s.nr)} ${esc(s.bez||'ohne Bezeichnung')}</b><small>${esc([s.typ,s.leiter,s.art&&s.in?s.art+s.in:''].filter(Boolean).join(' · '))}</small></span></button>`).join('')||'<div class="row"><small>Noch kein Stromkreis.</small></div>'}</div><p><button class="p" data-a="newSk">Stromkreis hinzufügen</button></p></main>`;
- if(t==='sk'&&nav.e!=null){const s=r.sk[nav.e];b=`<main>${SK.map(([g,fs])=>`<h2>${g}</h2><div class="g2">${fs.map(([k,l,ty])=>fld('sk',k,l,ty,s[k])).join('')}</div>`).join('')}
- ${['typ','leiter','art','in','rcd'].map(k=>`<datalist id="dl-${k}">${opts(k).map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`).join('')}
+ if(t==='sk'&&nav.e!=null){const s=r.sk[nav.e];b=`<main>${SK.map(([g,fs])=>`<h2>${g}</h2><div class="g2">${fs.map(([k,l,ty])=>fld('sk',k,l,ty,s[k],s)).join('')}</div>`).join('')}
+ ${['riso'].map(k=>`<datalist id="dl-${k}">${opts(k).map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`).join('')}
  <p><button class="p" data-a="doneSk">Fertig</button> <button data-a="dupSk">Duplizieren</button> ${arm('S','Löschen')}</p></main>`}
  if(t==='sig')b=`<main><p class="note">Prüfer: ${esc(r.d.pruefer||'(im Deckblatt eintragen)')}</p>${fld('d','ort','Ort',0,r.d.ort)}
  ${r.sig?`<h2>Unterschrift vom ${esc(r.sigd)}</h2><img class="sg" src="${r.sig}" alt="Unterschrift"><p><button data-a="resig">Neu unterschreiben</button></p>`:`<h2>Hier mit dem Finger unterschreiben</h2><canvas id="cv"></canvas><p><button class="p" data-a="saveSig">Unterschrift übernehmen</button> <button data-a="clrSig">Löschen</button></p>`}</main>`;
@@ -109,6 +117,8 @@ function newRuf(){const l=db.p.flatMap(p=>p.r).pop()?.d||{};const d={netzV:'230 
 
 document.addEventListener('input',e=>{const t=e.target,o=t.dataset.o;if(!o&&t.id!=='np')return;const r=R();
  if(o==='d')r.d[t.dataset.k]=t.value;if(o==='sk')r.sk[nav.e][t.dataset.k]=t.value;save()});
+document.addEventListener('change',e=>{const t=e.target,k=t.dataset.sel;if(!k)return;const s=R().sk[nav.e];
+ if(t.value==='__o'){s['_'+k]=1;s[k]=''}else{delete s['_'+k];s[k]=t.value}save();nav.keep=1;render()});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,D=b.dataset;
  if(a!=='del')nav.arm=null;
  if(a==='newP'){const n=$('#np').value.trim();if(!n)return $('#np').focus();db.p.push({id:uid(),name:n,r:[]});nav.p=db.p[db.p.length-1].id}
@@ -120,10 +130,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a==='pick'){const r=R();if(D.m){const v=r.d[D.k]||[];r.d[D.k]=v.includes(D.v)?v.filter(x=>x!==D.v):[...v,D.v]}else r.d[D.k]=r.d[D.k]===D.v?'':D.v;nav.keep=1}
  else if(a==='pp'){R().pp[D.i]=D.v;nav.keep=1}
  else if(a==='allio')R().pp.fill('io');
- else if(a==='newSk'){const r=R();r.sk.push({nr:String(r.sk.length+1)});nav.e=r.sk.length-1}
+ else if(a==='newSk'){const r=R();r.sk.push({nr:r.sk.length?incNr(r.sk[r.sk.length-1].nr):'1'});nav.e=r.sk.length-1}
  else if(a==='editSk')nav.e=+D.i;
  else if(a==='doneSk')nav.e=null;
- else if(a==='dupSk'){const r=R(),s={...r.sk[nav.e]};s.nr=String((parseInt(s.nr)||r.sk.length)+1);r.sk.splice(nav.e+1,0,s);nav.e++}
+ else if(a==='ins'){const s=R().sk[nav.e];s.riso=D.v+String(s.riso||'').replace(/^[<>]\s*/,'');nav.keep=1}
+ else if(a==='dupSk'){const r=R(),s={...r.sk[nav.e]};s.nr=incNr(s.nr);r.sk.splice(nav.e+1,0,s);nav.e++}
  else if(a==='del'){if(nav.arm!==D.key){nav.arm=D.key;nav.keep=1}else{nav.arm=null;
    if(D.key==='P'){db.p=db.p.filter(p=>p.id!==nav.p);nav.p=null}
    if(D.key==='R'){const p=P();p.r=p.r.filter(r=>r.id!==nav.r);nav.r=null}
