@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Messprotokoll</title>
+<meta name="theme-color" content="#0a4fa8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Messprotokoll">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef1f4;--pa:#fff;--tx:#12212f;--mu:#5b6b7a;--ac:#0a4fa8;--bd:#cfd7df;--ok:#19773c;--no:#b3261e;--ng:#8a6100;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1720;--pa:#17222e;--tx:#e8eef4;--mu:#93a3b3;--ac:#6aa6ff;--bd:#2c3a48;--ok:#5fd18a;--no:#ff8a80;--ng:#e8b84a}}
+:root[data-theme="dark"]{--bg:#0f1720;--pa:#17222e;--tx:#e8eef4;--mu:#93a3b3;--ac:#6aa6ff;--bd:#2c3a48;--ok:#5fd18a;--no:#ff8a80;--ng:#e8b84a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:84px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pa);border-bottom:2px solid var(--ac);display:flex;align-items:center;gap:8px;padding:8px 12px}
+header h1{font-size:18px;font-weight:600;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button{font:inherit;color:inherit;min-height:44px;padding:0 14px;border:1px solid var(--bd);background:var(--pa);border-radius:6px}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+button.d{color:var(--no);border-color:var(--no)}
+main{max-width:680px;margin:0 auto;padding:12px}
+h2{font-size:15px;font-weight:600;margin:20px 0 6px;color:var(--mu)}
+.row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--pa);border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:12px 10px;min-height:56px}
+.row b{display:block;font-weight:600}.row small{color:var(--mu)}
+.list{border:1px solid var(--bd);border-bottom:0;border-radius:6px;overflow:hidden}
+.f{display:block;margin:0 0 10px}.f span{display:block;font-size:13px;color:var(--mu);margin-bottom:2px}
+input,textarea{font:inherit;width:100%;min-height:46px;padding:8px 10px;color:var(--tx);background:var(--pa);border:1px solid var(--bd);border-radius:6px}
+input[data-n],input[inputmode]{font-variant-numeric:tabular-nums}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.ch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ch button{min-height:42px}
+.ch button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pp{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button.io.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.nio.on{background:var(--no);border-color:var(--no);color:#fff}
+.seg button.ng.on{background:var(--ng);border-color:var(--ng);color:#fff}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--pa);border-top:2px solid var(--ac);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{border:0;border-radius:0;min-height:56px;font-size:14px;background:none}
+nav button.on{color:var(--ac);font-weight:600;box-shadow:inset 0 3px 0 var(--ac)}
+#cv{width:100%;height:170px;background:#fff;border:1px solid var(--bd);border-radius:6px;touch-action:none;display:block}
+img.sg{max-width:100%;background:#fff;border:1px solid var(--bd);border-radius:6px}
+.note{color:var(--mu);font-size:14px}
+textarea{min-height:120px;font-size:12px}
+</style></head>
+<body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s);
+let db={p:[]},nav={tab:'deck'};
+try{db=JSON.parse(localStorage.getItem('mp1'))||db}catch(e){}
+const save=()=>{try{localStorage.setItem('mp1',JSON.stringify(db))}catch(e){}};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toLocaleDateString('de-DE');
+const P=()=>db.p.find(x=>x.id===nav.p),R=()=>P()?.r.find(x=>x.id===nav.r);
+
+const DECK=[['auftrag','Auftrag Nr.'],['kunde','Kunde'],['gebaeude','Gebäude'],['anlage','Anlagenteil / Verteiler'],['bestell','Bestell-/Auftrags-Nr.'],['vom','vom (Datum)'],['zustaendig','Zuständig (Frau/Herr)'],['beginn','Beginn der Prüfung'],['ende','Ende der Prüfung'],['pruefer','Prüfer'],['beauftragter','Beauftragter des Auftraggebers'],['netzV','Netz (V)','d'],['netzHz','Frequenz (Hz)','d'],['mg1','Messgerät 1: Hersteller/Typ'],['sn1','Messgerät 1: S/N'],['mg2','Messgerät 2: Hersteller/Typ'],['sn2','Messgerät 2: S/N'],['termin','Nächster Prüftermin (MM/JJJJ)']];
+const CH=[['nach','Prüfung nach',['VDE 0100-600','VDE 0105','DGUV V3'],1],['art','Art der Prüfung',['Neuanlage','Erweiterung/Änderung','Instandsetzung','Wiederholungsprüfung','E-Check']],['nf','Netzform',['TN-C','TN-S','TN-C-S','TT','IT']],['erg','Prüfungsergebnis',['Keine Mängel','Mängel (siehe Anlage)']],['pl','Prüfplakette angebracht',['ja','nein']],['rm','Riso-Messung',['ohne Verbraucher','mit Verbraucher']],['rv','Riso-Prüfspannung',['500 V','250 V']],['ab','Abschaltzeit',['0,4 s','5 s']]];
+const PP=['Auswahl und Anordnung der Betriebsmittel','Schutz gegen direktes Berühren','Abschalt- und Trennvorrichtungen','Vorhandensein von Brandabschottung','Hauptpotentialausgleich','Kennzeichnung der Stromkreise','Zugänglichkeit der Betriebsmittel','Beachtung der Herstellerunterlagen','Schaltpläne, Warn-, Verbotszeichen, Schemata','Leitungsverlegung (Bemessung/Anordnung/Kennzeichnung)','Funktionsprüfung der FI-Prüftaste','Automatische Abschaltung im Fehlerfall','Durchgängigkeit Schutzleiter, Potentialausgleich','Rechtsdrehfeld der Drehstromsteckdosen','Drehrichtung der Motoren'];
+const SK=[['Leitung',[['nr','Nr.','n'],['bez','Stromkreis / Zielbezeichnung'],['typ','Typ','l'],['leiter','Leiter (Anz. x mm²)','l']]],['Überstromschutz',[['art','Art / Charakteristik','l'],['in','In (A)','l'],['ikmin','Ik min. (A)','d'],['ikpe','Ik L-PE (A)','d'],['zs','Zs (Ω)','d'],['ikn','Ik L-N (A)','d'],['zi','Zi (Ω)','d']]],['Isolation und Schutzleiter',[['riso','Riso (MΩ)','d'],['rpe','R PE / R low (Ω)','d']]],['RCD',[['rcd','In / Art','l'],['idn','IΔn (mA)','d'],['imess','Imess (mA)','d'],['tms','Auslösezeit (ms)','d'],['u','Umess (V)','d']]]];
+const DEF={typ:['NYM-J','NYY-J','H07RN-F','H05VV-F','NHXMH-J','(N)HXH','J-Y(St)Y'],leiter:['3x1,5','5x1,5','3x2,5','5x2,5','5x4','5x6','5x10','5x16','5x25'],art:['B','C','D','K','gG','gL'],in:['6','10','13','16','20','25','32','35','40','50','63'],rcd:['30 / A','30 / B','300 / A','100 / A','500 / A']};
+const opts=k=>{const u=db.p.flatMap(p=>p.r.flatMap(r=>r.sk.map(s=>s[k]))).filter(Boolean).reverse();return[...new Set([...u,...DEF[k]])]};
+
+function fld(o,k,l,t,v){const a=t==='l'?`list="dl-${k}"`:t==='d'?'inputmode="decimal"':t==='n'?'inputmode="numeric"':'';
+ return `<label class="f"><span>${l}</span><input data-o="${o}" data-k="${k}" value="${esc(v)}" ${a} autocomplete="off"></label>`}
+function chips(r,[k,l,os,multi]){const v=r.d[k];const on=o=>multi?(v||[]).includes(o):v===o;
+ return `<h2>${l}</h2><div class="ch">${os.map(o=>`<button class="${on(o)?'on':''}" data-a="pick" data-k="${k}" data-v="${esc(o)}" data-m="${multi?1:''}">${o}</button>`).join('')}</div>`}
+const arm=(key,txt)=>`<button class="d" data-a="del" data-key="${key}">${nav.arm===key?'Nochmal tippen zum Löschen':txt}</button>`;
+const head=(t,back)=>`<header>${back?'<button data-a="back" aria-label="Zurück">‹ Zurück</button>':''}<h1>${esc(t)}</h1></header>`;
+
+function vHome(){return head('Messprotokolle')+`<main><h2>Projekte</h2>
+ <div class="list">${db.p.map(p=>`<button class="row" data-a="openP" data-id="${p.id}"><span><b>${esc(p.name)}</b><small>${p.r.length} Prüfung(en)</small></span></button>`).join('')||'<div class="row"><small>Noch kein Projekt. Lege unten das erste an.</small></div>'}</div>
+ <h2>Neues Projekt</h2><label class="f"><span>Name</span><input id="np"></label><button class="p" data-a="newP">Projekt anlegen</button>
+ <h2>Sicherung</h2><p class="note">Die Daten liegen nur auf diesem Gerät. Kopiere den Text in eine Notiz, um zu sichern, oder füge eine Sicherung ein.</p>
+ <textarea id="bk">${esc(JSON.stringify(db))}</textarea><p><button data-a="restore">Sicherung einspielen</button></p></main>`}
+
+function vProj(){const p=P();return head(p.name,1)+`<main><h2>Prüfungen</h2><div class="list">${p.r.map(r=>`<button class="row" data-a="openR" data-id="${r.id}"><span><b>${esc(r.d.anlage||'Prüfung ohne Anlagenteil')}</b><small>${esc(r.d.beginn||'kein Datum')} · ${r.sk.length} Stromkreise${r.sig?' · unterschrieben':''}</small></span></button>`).join('')||'<div class="row"><small>Noch keine Prüfung in diesem Projekt.</small></div>'}</div>
+ <p><button class="p" data-a="newR">Neue Prüfung</button></p><p>${arm('P','Projekt löschen')}</p></main>`}
+
+function vR(){const r=R(),t=nav.tab;let b='';
+ if(t==='deck')b=`<main>${DECK.map(([k,l,ty])=>fld('d',k,l,ty,r.d[k])).join('')}${CH.map(c=>chips(r,c)).join('')}<p>${arm('R','Prüfung löschen')}</p></main>`;
+ if(t==='pp')b=`<main><button data-a="allio">Alle Punkte auf i.O. setzen</button>${PP.map((l,i)=>`${i===0?'<h2>Besichtigen</h2>':i===10?'<h2>Erproben</h2>':''}<div class="pp"><div>${l}</div><div class="seg">${[['io','i.O.'],['nio','n.i.O.'],['ng','n. gep.']].map(([v,n])=>`<button class="${v} ${r.pp[i]===v?'on':''}" data-a="pp" data-i="${i}" data-v="${v}">${n}</button>`).join('')}</div></div>`).join('')}</main>`;
+ if(t==='sk'&&nav.e==null)b=`<main><p class="note">${r.sk.length} Stromkreise · ${Math.ceil(r.sk.length/12)} Folgeblatt/-blätter (12 pro Blatt)</p><div class="list">${r.sk.map((s,i)=>`<button class="row" data-a="editSk" data-i="${i}"><span><b>${esc(s.nr)} ${esc(s.bez||'ohne Bezeichnung')}</b><small>${esc([s.typ,s.leiter,s.art&&s.in?s.art+s.in:''].filter(Boolean).join(' · '))}</small></span></button>`).join('')||'<div class="row"><small>Noch kein Stromkreis.</small></div>'}</div><p><button class="p" data-a="newSk">Stromkreis hinzufügen</button></p></main>`;
+ if(t==='sk'&&nav.e!=null){const s=r.sk[nav.e];b=`<main>${SK.map(([g,fs])=>`<h2>${g}</h2><div class="g2">${fs.map(([k,l,ty])=>fld('sk',k,l,ty,s[k])).join('')}</div>`).join('')}
+ ${['typ','leiter','art','in','rcd'].map(k=>`<datalist id="dl-${k}">${opts(k).map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`).join('')}
+ <p><button class="p" data-a="doneSk">Fertig</button> <button data-a="dupSk">Duplizieren</button> ${arm('S','Löschen')}</p></main>`}
+ if(t==='sig')b=`<main><p class="note">Prüfer: ${esc(r.d.pruefer||'(im Deckblatt eintragen)')}</p>${fld('d','ort','Ort',0,r.d.ort)}
+ ${r.sig?`<h2>Unterschrift vom ${esc(r.sigd)}</h2><img class="sg" src="${r.sig}" alt="Unterschrift"><p><button data-a="resig">Neu unterschreiben</button></p>`:`<h2>Hier mit dem Finger unterschreiben</h2><canvas id="cv"></canvas><p><button class="p" data-a="saveSig">Unterschrift übernehmen</button> <button data-a="clrSig">Löschen</button></p>`}</main>`;
+ const title=r.d.anlage||'Prüfung';
+ return head(title,1)+b+`<nav>${[['deck','Deckblatt'],['pp','Prüfpunkte'],['sk','Stromkreise'],['sig','Unterschrift']].map(([k,l])=>`<button class="${t===k?'on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</nav>`}
+
+function render(){const y=scrollY;$('#app').innerHTML=nav.r?vR():nav.p?vProj():vHome();sigInit();scrollTo(0,nav.keep?y:0);nav.keep=0}
+function sigInit(){const c=$('#cv');if(!c)return;const x=c.getContext('2d'),k=devicePixelRatio||1;c.width=c.clientWidth*k;c.height=c.clientHeight*k;x.scale(k,k);x.lineWidth=2.4;x.lineCap='round';x.strokeStyle='#000';let on=0,dirty=0;
+ const pt=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
+ c.onpointerdown=e=>{on=1;c.setPointerCapture(e.pointerId);const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b);x.stroke()};
+ c.onpointermove=e=>{if(!on)return;const[a,b]=pt(e);x.lineTo(a,b);x.stroke();dirty=1};
+ c.onpointerup=()=>on=0;
+ window.sig={get:()=>dirty?c.toDataURL('image/png'):null,clear:()=>{x.clearRect(0,0,c.width,c.height);dirty=0}}}
+
+function newRuf(){const l=db.p.flatMap(p=>p.r).pop()?.d||{};const d={netzV:'230 / 400',netzHz:'50',rm:'ohne Verbraucher',rv:'500 V',ab:'0,4 s',beginn:today(),vom:today(),nach:[]};
+ ['pruefer','mg1','sn1','mg2','sn2','ort'].forEach(k=>d[k]=l[k]||'');
+ const r={id:uid(),d,pp:Array(15).fill('ng'),sk:[],sig:null};P().r.push(r);nav.r=r.id;nav.tab='deck';nav.e=null}
+
+document.addEventListener('input',e=>{const t=e.target,o=t.dataset.o;if(!o&&t.id!=='np')return;const r=R();
+ if(o==='d')r.d[t.dataset.k]=t.value;if(o==='sk')r.sk[nav.e][t.dataset.k]=t.value;save()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,D=b.dataset;
+ if(a!=='del')nav.arm=null;
+ if(a==='newP'){const n=$('#np').value.trim();if(!n)return $('#np').focus();db.p.push({id:uid(),name:n,r:[]});nav.p=db.p[db.p.length-1].id}
+ else if(a==='openP')nav.p=D.id;
+ else if(a==='openR'){nav.r=D.id;nav.tab='deck';nav.e=null}
+ else if(a==='newR')newRuf();
+ else if(a==='back'){if(nav.r&&nav.e!=null)nav.e=null;else if(nav.r)nav.r=null;else nav.p=null}
+ else if(a==='tab'){nav.tab=D.v;nav.e=null}
+ else if(a==='pick'){const r=R();if(D.m){const v=r.d[D.k]||[];r.d[D.k]=v.includes(D.v)?v.filter(x=>x!==D.v):[...v,D.v]}else r.d[D.k]=r.d[D.k]===D.v?'':D.v;nav.keep=1}
+ else if(a==='pp'){R().pp[D.i]=D.v;nav.keep=1}
+ else if(a==='allio')R().pp.fill('io');
+ else if(a==='newSk'){const r=R();r.sk.push({nr:String(r.sk.length+1)});nav.e=r.sk.length-1}
+ else if(a==='editSk')nav.e=+D.i;
+ else if(a==='doneSk')nav.e=null;
+ else if(a==='dupSk'){const r=R(),s={...r.sk[nav.e]};s.nr=String((parseInt(s.nr)||r.sk.length)+1);r.sk.splice(nav.e+1,0,s);nav.e++}
+ else if(a==='del'){if(nav.arm!==D.key){nav.arm=D.key;nav.keep=1}else{nav.arm=null;
+   if(D.key==='P'){db.p=db.p.filter(p=>p.id!==nav.p);nav.p=null}
+   if(D.key==='R'){const p=P();p.r=p.r.filter(r=>r.id!==nav.r);nav.r=null}
+   if(D.key==='S'){R().sk.splice(nav.e,1);nav.e=null}}}
+ else if(a==='clrSig'){sig.clear();return}
+ else if(a==='saveSig'){const s=sig.get();if(!s)return alert('Bitte zuerst unterschreiben.');const r=R();r.sig=s;r.sigd=today()}
+ else if(a==='resig'){R().sig=null}
+ else if(a==='restore'){try{const j=JSON.parse($('#bk').value);if(!Array.isArray(j.p))throw 0;db=j;nav={tab:'deck'}}catch(_){return alert('Die Sicherung ist nicht lesbar.')}}
+ save();render()});
+render();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script></body></html>
